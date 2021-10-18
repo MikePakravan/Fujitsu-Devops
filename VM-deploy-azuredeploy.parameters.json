@@ -1,0 +1,42 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmSize": {
+            "value": "Standard_A1_v2"
+        },
+        "adminUsername": {
+            "value": "fujadmin"
+        },
+        "adminPasswordOrKey": {
+            "value": "Fujadmin1234!"
+        },
+        "workspaceId": {
+            "value": "02f78721-096b-4fc0-be02-eae28f51b03e"
+        },
+        "workspaceKey": {
+            "value": "gMskWIQbGQH9rRYw9fwUgsF0JsZIELOxUeeOifMK2i6u0k0SSHMyNHbz79UnbbLQNnvlDX7Fqo7e/fFwoSAZFA=="
+        },
+        "VmVnetDetails": {
+            "value": {
+                "Vnets": [
+                    {
+                        "VnetName": "vnet-hub",
+                        "Subnet": "vnet-hub-sub",
+                        "location": "australiaeast"
+                    },
+                    {
+                        "VnetName": "vnet01",
+                        "Subnet": "vnet01-sub01",
+                        "location": "australiaeast"
+                    },
+                    {
+                        "VnetName": "vnet02",
+                        "Subnet": "vnet02-sub02",
+                        "location": "australiaeast"
+                    }
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,149 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VmVnetDetails": {
+            "type": "object"
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_A1_v2",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin username for VM"
+            }
+        },
+        "adminPasswordOrKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
+            }
+        },
+        "workspaceId": {
+            "type": "string",
+            "metadata": {
+                "description": "Log anallytics workspace ID"
+            }
+        },
+        "workspaceKey": {
+            "type": "string",
+            "metadata": {
+                "description": "Log anallytics workspace ID"
+            }
+        }
+    },
+    "variables": {
+        "VMName_prefix": "VM-NPM-Test-",
+        "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('VMName_prefix'), 'nic-',copyIndex(1))]",
+            "apiVersion": "2020-05-01",
+            "location": "[parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].location]",
+            "copy": {
+                "name": "Vnets",
+                "count": "[length(parameters('VmVnetDetails').Vnets)]"
+            },
+            "dependsOn": [],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].Vnetname,parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].subnet)]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat(variables('VMName_prefix'), copyIndex(1))]",
+            "apiVersion": "2020-06-01",
+            "location": "[parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].location]",
+            "copy": {
+                "name": "Vnets",
+                "count": "[length(parameters('VmVnetDetails').Vnets)]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('VMName_prefix'), 'nic-',copyIndex(1)))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('VMName_prefix'), copyIndex(1))]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPasswordOrKey')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('VMName_prefix'), 'nic-',copyIndex(1)))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "name": "Microsoft.Insights.LogAnalyticsAgent",
+                    "apiVersion": "2015-06-15",
+                    "location": "[parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].location]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('VMName_prefix'), copyIndex(1)))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+                        "type": "MicrosoftMonitoringAgent",
+                        "typeHandlerVersion": "1.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "workspaceId": "[parameters('workspaceId')]"
+                        },
+                        "protectedSettings": {
+                            "workspaceKey": "[parameters('workspaceKey')]"
+                        }
+                    }
+                },
+                {
+                    "type": "extensions",
+                    "name": "Microsoft.Azure.NetworkWatcher",
+                    "apiVersion": "2015-06-15",
+                    "location": "[parameters('VmVnetDetails').Vnets[copyIndex('Vnets')].location]",
+                    "dependsOn": [
+                        "[concat('Microsoft.Compute/virtualMachines/', concat(variables('VMName_prefix'), copyIndex(1)))]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Azure.NetworkWatcher",
+                        "type": "NetworkWatcherAgentWindows",
+                        "typeHandlerVersion": "1.4",
+                        "autoUpgradeMinorVersion": true
+                    }
+                }
+            ]
+        }
+    ]
+}
